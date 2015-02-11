@@ -1,0 +1,37 @@
+crosswind 
+
+
+Argument 1, 2: Origin and Destination Airports 
+    The origin and destination airports can either be specified as a whitespace-delimited list, or
+    as a file with the aiport names on individual lines. Crosswind will search for the cartesian
+    product of the origin and destination airports; that is, every possible combination of origin
+    and destination specified. This means that |origin| x |destination| requests will be made.
+
+--origin SFO SJC OAK LAX --destination JFK LGA MIA PBI FLL ORD
+--origin origin_airports.txt -destination destination_airports.txt
+
+
+Argument 3: Advanced Routing Codes
+    Standard ITA routing codes; ensure that these codes work for all the routes you specify. For
+    example, although the code "AA ORD AA" would work for some of the routes in the above example,
+    it would not work for any of the trips ending in ORD.
+
+--routing "AA,US PHX AA,US / f bc=V|bc=W"
+
+
+Argument 4: Date Range
+    Exactly how you'd think it would work, specify the flexibility of the date, either exact,
+    +/- 1, +/- 2, or a calendar of monthly dates. Monthly can take a *long* time to process,
+    since we follow through the links for each date in the month.
+
+--date {exact, +-1, +-2, month} 12/31/2015
+
+
+Argument 5: Class
+--class {first, business, economy}
+
+
+Argument 6: Polling Frequency (in seconds)
+    This is how often we examine a new origin-destination pair.
+
+--freq 
