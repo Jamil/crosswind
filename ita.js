@@ -128,7 +128,8 @@ function getPricesForRoute(origin, destination, outDate, inDate, routing) {
                     var printOutDate = replaceAll('/', '-', outDate);
                     var printInDate = replaceAll('/', '-', inDate);
 
-                    page.render('output/' + origin + ' ✈ ' + destination + ' | ' + printOutDate + ' -> ' + printInDate + '.jpg');
+                    page.render('output/' + origin + ' ' + destination + ' ' + printOutDate + ' ' + printInDate + '.jpg');
+
                     price = page.evaluate(function() {
                         elems = document.getElementsByClassName('GE-ODR-BMU');
                         if (elems.length > 0) {
@@ -137,11 +138,37 @@ function getPricesForRoute(origin, destination, outDate, inDate, routing) {
                         else {
                             return 'Not Found'
                         }
-                    })
-                    fs.write('output/summary.txt', origin + ' ✈ ' + destination + ' | ' + printOutDate + ' -> ' + printInDate + ' : ' + price + '\n', 'a');
-                    fs.write('output/summary.csv', origin + ',' + destination + ',' + printOutDate + ',' + printInDate + ',' + price + '\n', 'a');
+                    });
+
+                    stops = page.evaluate(function() {
+                        out_stops = [];
+                        ret_stops = [];
+
+                        rows = document.getElementsByClassName('GE-ODR-BOV');
+
+                        out_row = rows[0];
+                        out_cols = out_row.getElementsByTagName('td');
+                        out_div = out_cols[5];
+                        out_stop_divs = out_div.getElementsByClassName('GE-ODR-BPV');
+
+                        ret_row = rows[1];
+                        ret_cols = ret_row.getElementsByTagName('td');
+                        ret_div = ret_cols[4];
+                        ret_stop_divs = ret_div.getElementsByClassName('GE-ODR-BPV');
+
+                        for (var i = 0; i < out_stop_divs.length; i++) {
+                            out_stops.push(out_stop_divs[i].innerText);
+                        }
+                        for (var i = 0; i < ret_stop_divs.length; i++) {
+                            ret_stops.push(ret_stop_divs[i].innerText);
+                        }
+
+                        return [out_stops, ret_stops];
+                    });
 
                     console.log(price);
+                    console.log(stops[0]);
+                    console.log(stops[1]);
 
                     phantom.exit();
                 }, 70000)
