@@ -2,14 +2,55 @@ var fs = require('fs');
 var exec = require('child_process').exec;
 var args = process.argv;
 
-var pairs = []
-var targetcpm = 0.10
+var pairs = [];
+var targetcpm = 0.10;
+var dest_phone = process.env['DEST_PHONE'];
+
+function makeCSVLine(cols) {
+    return cols.join(', ') + '\n';
+}
 
 function launchPhantom(i) {
-    function calculateMiles(out_stops, ret_stops, callback) {
-        var origin = pairs[i][0];
-        var destination = pairs[i][1];
+    function replaceAll(find, replace, str) {
+        return str.replace(new RegExp(find, 'g'), replace);
+    }
 
+    var origin = pairs[i][0];
+    var destination = pairs[i][1];
+    var outDate = pairs[i][2];
+    var inDate = pairs[i][3];
+    var printOutDate = replaceAll('/', '-', outDate);
+    var printInDate = replaceAll('/', '-', inDate);
+
+    function makePrettyLine(html, price, mqm, out_stops, ret_stops) {
+        var cpm = (price/mqm).toFixed(2);
+
+        var title = origin + ' ✈ ' + destination;
+        var dates = printOutDate + ' -> ' + printInDate;
+        var price_and_miles = '$' + price + ', ' + mqm + ' ($' + cpm + '/mi)';
+        var out_stops = ' outbound via ' + out_stops;
+        var ret_stops = ' return via ' + ret_stops;
+
+        var html_open = '<font face="Courier New"><a href=';
+        var filename = '"' + origin + ' ' + destination + ' ' + printOutDate + ' ' + printInDate + '.jpg"';
+        var html_close = '>';
+
+        if (!html) {
+            var s = title + ' | ' + dates + ' : ' + price_and_miles +
+                (out_stops.length > 0 ? out_stops : '') +
+                (ret_stops.length > 0 ? ret_stops : '');
+            return s
+        }
+        else {
+            var s = html_open + filename + html_close + 
+                title + '</a> | ' + dates + ' : ' + price_and_miles +
+                (out_stops.length > 0 ? out_stops : '') +
+                (ret_stops.length > 0 ? ret_stops : '') + '<br>';
+            return s
+        }
+    }
+    
+    function calculateMiles(out_stops, ret_stops, callback) {
         var request = require('request');
 
         var endpoint = "http://fly.qux.us/smcalc/dist.php?route=" + origin;
@@ -41,11 +82,6 @@ function launchPhantom(i) {
     }
 
     function sendMessage(mqm, price, cpm) {
-        var origin = pairs[i][0];
-        var destination = pairs[i][1];
-        var outDate = pairs[i][1];
-        var inDate = pairs[i][1];
-
         // Twilio Credentials 
         var accountSid = process.env['TWILIO_SID']; 
         var authToken = process.env['TWILIO_AUTH']; 
@@ -56,7 +92,7 @@ function launchPhantom(i) {
         var bodyText = 'Found ' + origin + ' ✈ ' + destination + ' $' + price + ' - ' + mqm + ' miles - $' + cpm.toFixed(2) + '/mile'
 
         client.messages.create({ 
-            to: process.env['DEST_PHONE'], 
+            to: dest_phone, 
             from: "+14159939996", 
             body: bodyText,   
         }, function(err, message) { 
@@ -64,22 +100,14 @@ function launchPhantom(i) {
     }
 
     function writeOut(mqm, price, cpm, out_stops, in_stops) {
-        function replaceAll(find, replace, str) {
-            return str.replace(new RegExp(find, 'g'), replace);
-        }
+        fs.appendFile('output/summary.txt', 
+                makePrettyLine(false, price, mqm, out_stops, in_stops));
 
-        var origin = pairs[i][0];
-        var destination = pairs[i][1];
-        var outDate = pairs[i][2];
-        var inDate = pairs[i][3];
-        var printOutDate = replaceAll('/', '-', outDate);
-        var printInDate = replaceAll('/', '-', inDate);
+        var csv = makeCSVLine([origin, destination, printOutDate, 
+                printInDate, price, mqm, cpm, out_stops, in_stops])
+        fs.appendFile('output/summary.csv', csv);
 
-        console.log(origin + ' ✈ ' + destination + ' | ' + printOutDate + ' -> ' + printInDate + ' : $' + price + ', ' + mqm + ' ($' + cpm.toFixed(2) + '/mi), via ' + out_stops + ' and ' + in_stops);
-        fs.appendFile('output/summary.txt', origin + ' ✈ ' + destination + ' | ' + printOutDate + ' -> ' + printInDate + ' : $' + price + ', ' + mqm + ' ($' + cpm.toFixed(2) + '/mi), via ' + out_stops + ' and ' + in_stops + '\n');
-        fs.appendFile('output/summary.csv', origin + ',' + destination + ',' + printOutDate + ',' + printInDate + ',' + price + ',' + mqm + ',' + cpm + '\n');
-
-        var html = '<font face="Courier New"><a href="' + origin + ' ' + destination + ' ' + printOutDate + ' ' + printInDate + '.jpg">' + origin + ' &#9992; ' + destination + '</a>' + ' | ' + printOutDate + ' -> ' + printInDate + ' : $' + price + ', ' + mqm + ' ($' + cpm.toFixed(2) + '/mi), via ' + out_stops + ' and ' + in_stops + '<br></font>'
+        var html = makePrettyLine(true, price, mqm, out_stops, in_stops);
         fs.appendFile('output/summary.html', html);
 
         if (cpm < targetcpm) {
@@ -147,14 +175,14 @@ function exploreRoutes(origins, destinations, outDates, inDates, routing) {
     
 
     fs.writeFile('output/summary.txt', '');
-    fs.writeFile('output/summary.csv', '');
+    fs.writeFile('output/summary.csv', makeCSVLine(['Origin', 'Destination', 'Departure', 'Return', 'Price', 'Miles', 'Cost per mile', 'Outbound stops', 'Return stops']));
     fs.writeFile('output/summary.html', '');
 
-    for (var i = 0; i < origins.length; i++) {
+    for (var h = 0; h < origins.length; h++) {
         for (var j = 0; j < destinations.length; j++) {
             for (var k = 0; k < outDates.length; k++) {
                 for (var l = 0; l < inDates.length; l++) {
-                    pairs.push([origins[i], destinations[j], outDates[k], inDates[l], routing]);
+                    pairs.push([origins[h], destinations[j], outDates[k], inDates[l], routing]);
                 }
             }
         }
@@ -178,44 +206,62 @@ if (args.length > 2) {
     // 2: Outbound date
     // 3: Inbound date
     // 4: Routing
+    // 5: Target CPM
+    // 6: Alert phone number
     
     var state = 0;
-    for (var i = 2; i < args.length && state != 5; i++) {
+    for (var j = 2; j < args.length && state < 7; j++) {
         switch(state) {
             case 0:
-                if (args[i] == 'to') {
+                if (args[j] == 'to') {
                     state++;
                 }
                 else {
-                    origins.push(args[i]);
+                    origins.push(args[j]);
                 }
                 break;
             case 1:
-                if (args[i] == 'from') {
+                if (args[j] == 'from') {
                     state++;
                 }
                 else {
-                    destinations.push(args[i]);
+                    destinations.push(args[j]);
                 }
                 break;
             case 2:
-                if (args[i] == 'until') {
+                if (args[j] == 'until') {
                     state++;
                 }
                 else {
-                    outboundDates.push(args[i]);
+                    outboundDates.push(args[j]);
                 }
                 break;
             case 3:
-                if (args[i] == 'routing') {
+                if (args[j] == 'routing') {
                     state++;
                 }
                 else {
-                    inboundDates.push(args[i]);
+                    inboundDates.push(args[j]);
                 }
                 break;
             case 4:
-                routing = '"' + args[i] + '"';
+                if (args[j] == 'target') {
+                    state++;
+                }
+                else {
+                    routing = '"' + args[j] + '"';
+                }
+                break;
+            case 5:
+                if (args[j] == 'text') {
+                    state++;
+                }
+                else {
+                    targetcpm = args[j];
+                }
+                break;
+            case 6:
+                dest_phone = args[j];
                 state++;
                 break;
         }
