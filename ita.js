@@ -2,11 +2,11 @@ var fs = require('fs');
 var system = require('system');
 var args = system.args;
 
-function getPricesForRoute(origin, destination, outDate, inDate, routing) {
+function getPricesForRoute(origin, destination, outDate, inDate, routing, flexible, stay) {
     var page = require('webpage').create();
     page.open('https://matrix.itasoftware.com', function(status) {
             if (status === "success") {
-                page.evaluate(function(origin, destination, outDate, inDate, routing) {
+                page.evaluate(function(origin, destination, outDate, inDate, routing, flexible, stay) {
                     function dispatchChangeForTarget(target) {
                         var event = target.ownerDocument.createEvent('Event');
                         var blurevent = target.ownerDocument.createEvent('FocusEvent');
@@ -78,6 +78,10 @@ function getPricesForRoute(origin, destination, outDate, inDate, routing) {
                     }
 
                     window.setTimeout(function() {
+                        cal_button = document.getElementById("gwt-uid-156");
+                        cal_date = document.getElementById("calDate-0");
+                        cal_stay = document.getElementById("calStay-0");
+                        
                         orig = document.getElementById("cityPair-orig-0");
                         dest = document.getElementById("cityPair-dest-0");
                         out = document.getElementById("cityPair-outDate-0");
@@ -87,9 +91,17 @@ function getPricesForRoute(origin, destination, outDate, inDate, routing) {
 
                         setValue(orig, origin);
                         setValue(dest, destination);
-                        setValue(out, outDate);
-                        setValue(ret, inDate);
                         setValue(currency, "USD");
+
+                        if (!flexible) {
+                            setValue(out, outDate);
+                            setValue(ret, inDate);
+                        }
+                        else {
+                            cal_button.click();
+                            setValue(cal_date, outDate);
+                            setValue(cal_stay, stay);
+                        }
 
                         if (routing) {
                             var anchors = document.getElementsByClassName('gwt-Anchor');
@@ -118,57 +130,70 @@ function getPricesForRoute(origin, destination, outDate, inDate, routing) {
                         }
                     }, 500);
 
-                }, origin, destination, outDate, inDate, routing);
+                }, origin, destination, outDate, inDate, routing, flexible, stay);
 
                 window.setTimeout(function() {
-                    function replaceAll(find, replace, str) {
-                        return str.replace(new RegExp(find, 'g'), replace);
+                    function genFileName() {
+                        function replaceAll(find, replace, str) {
+                            return str.replace(new RegExp(find, 'g'), replace);
+                        }
+
+                        var printOutDate = replaceAll('/', '-', outDate);
+                        var printInDate = replaceAll('/', '-', inDate);
+
+                        return 'output/' + origin + ' ' + 
+                            destination + ' ' + printOutDate + 
+                            ' ' + printInDate + '.jpg';
                     }
 
-                    var printOutDate = replaceAll('/', '-', outDate);
-                    var printInDate = replaceAll('/', '-', inDate);
+                    page.render(genFileName());
 
-                    page.render('output/' + origin + ' ' + destination + ' ' + printOutDate + ' ' + printInDate + '.jpg');
-
-                    price = page.evaluate(function() {
-                        elems = document.getElementsByClassName('GE-ODR-BMU');
+                    price = page.evaluate(function(flexible) {
+                        if (!flexible) {
+                            elems = document.getElementsByClassName('GE-ODR-BMU');
+                        }
+                        else {
+                            elems = document.getElementsByClassName('GE-ODR-BLO');
+                        }
                         if (elems.length > 0) {
                             return elems[0].innerText
                         }
                         else {
                             return 'Not Found'
                         }
-                    });
-
-                    stops = page.evaluate(function() {
-                        out_stops = [];
-                        ret_stops = [];
-
-                        rows = document.getElementsByClassName('GE-ODR-BOV');
-
-                        out_row = rows[0];
-                        out_cols = out_row.getElementsByTagName('td');
-                        out_div = out_cols[5];
-                        out_stop_divs = out_div.getElementsByClassName('GE-ODR-BPV');
-
-                        ret_row = rows[1];
-                        ret_cols = ret_row.getElementsByTagName('td');
-                        ret_div = ret_cols[4];
-                        ret_stop_divs = ret_div.getElementsByClassName('GE-ODR-BPV');
-
-                        for (var i = 0; i < out_stop_divs.length; i++) {
-                            out_stops.push(out_stop_divs[i].innerText);
-                        }
-                        for (var i = 0; i < ret_stop_divs.length; i++) {
-                            ret_stops.push(ret_stop_divs[i].innerText);
-                        }
-
-                        return [out_stops, ret_stops];
-                    });
-
+                    }, flexible);
+                    
                     console.log(price);
-                    console.log(stops[0]);
-                    console.log(stops[1]);
+
+                    if (!flexible) {
+                        stops = page.evaluate(function() {
+                            out_stops = [];
+                            ret_stops = [];
+
+                            rows = document.getElementsByClassName('GE-ODR-BOV');
+
+                            out_row = rows[0];
+                            out_cols = out_row.getElementsByTagName('td');
+                            out_div = out_cols[5];
+                            out_stop_divs = out_div.getElementsByClassName('GE-ODR-BPV');
+
+                            ret_row = rows[1];
+                            ret_cols = ret_row.getElementsByTagName('td');
+                            ret_div = ret_cols[4];
+                            ret_stop_divs = ret_div.getElementsByClassName('GE-ODR-BPV');
+
+                            for (var i = 0; i < out_stop_divs.length; i++) {
+                                out_stops.push(out_stop_divs[i].innerText);
+                            }
+                            for (var i = 0; i < ret_stop_divs.length; i++) {
+                                ret_stops.push(ret_stop_divs[i].innerText);
+                            }
+
+                            return [out_stops, ret_stops];
+                        });
+                        console.log(stops[0]);
+                        console.log(stops[1]);
+                    }
 
                     phantom.exit();
                 }, 70000)
@@ -187,10 +212,17 @@ function getPricesForRoute(origin, destination, outDate, inDate, routing) {
 // 4. Inbound date
 // 5. Routing codes
 
-origin = args[1];
-destination = args[2];
-outDate = args[3];
-inDate = args[4];
-routing = args[5];
+var origin = args[1];
+var destination = args[2];
+var outDate = args[3];
+var inDate = args[4];
+var routing = args[5];
+var stay;
 
-getPricesForRoute(origin, destination, outDate, inDate, routing);
+var flexible = args[4] == "month";
+
+if (flexible) {
+    stay = args[6];
+}
+
+getPricesForRoute(origin, destination, outDate, inDate, routing, flexible, stay);
