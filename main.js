@@ -5,6 +5,7 @@ var args = process.argv;
 var pairs = [];
 var targetcpm = 0.10;
 var dest_phone = process.env['DEST_PHONE'];
+var orig_phone = process.env['ORIG_PHONE'];
 
 function makeCSVLine(cols) {
     return cols.join(', ') + '\n';
@@ -97,7 +98,7 @@ function launchPhantom(it) {
 
         client.messages.create({ 
             to: dest_phone, 
-            from: "+14159939996", 
+            from: orig_phone, 
             body: bodyText,   
         }, function(err, message) { 
         });
