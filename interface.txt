@@ -10,10 +10,25 @@ SFO SJC OAK LAX to JFK LGA MIA PBI FLL ORD
 Argument 3: Outbound and Inbound Dates
     These are the dates you would like to leave on, both from your origin city and your destination city. Make sure they do not overlap, as we're not yet smart enough to make sure that the outbound and inbound dates make sense.
 
-03/04/2015 03/05/2015 03/06/2015 to 03/14/2015 03/15/2015 03/16/2015
+from 03/04/2015 03/05/2015 03/06/2015 until 03/14/2015 03/15/2015 03/16/2015
 
 
 Argument 4: Advanced Routing Codes
     Standard ITA routing codes; ensure that these codes work for all the routes you specify. For example, although the code "AA ORD AA" would work for some of the routes in the above example, it would not work for any of the trips ending in ORD.
 
-"AA,US PHX AA,US / f bc=V|bc=W"
+routing "AA,US PHX AA,US / f bc=V|bc=W"
+
+
+Argument 5: Target CPM
+    This is the `target` cost per mile; if a fare meets this CPM (i.e., if the cost divided by the miles flown is less than the target), Twilio will send the destination phone a text.
+
+target 0.10
+
+
+Argument 6: Phone number 
+    This is the phone number to text if the Target CPM is matched. Make sure to set your Twilio API keys and origin phone number in the source (the API keys can also be set with environment variables)
+
+text 3455555555
+
+
+Example: node main.js LAX to JFK from 07/01/2015 until 07/05/2015 routing "AA,US AA,US AA,US / f bc=V|bc=W" target 0.10 text 3455555555
