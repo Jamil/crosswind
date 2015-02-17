@@ -114,6 +114,8 @@ function launchPhantom(it) {
         var html = makePrettyLine(true, price, mqm, out_stops, in_stops);
         fs.appendFile('output/summary.html', html);
 
+        console.log(makePrettyLine(false, price, mqm, out_stops, in_stops));
+
         if (cpm < targetcpm) {
             sendMessage(mqm, price, cpm);
         }
