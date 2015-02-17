@@ -10,15 +10,19 @@ function makeCSVLine(cols) {
     return cols.join(', ') + '\n';
 }
 
-function launchPhantom(i) {
+function launchPhantom(it) {
     function replaceAll(find, replace, str) {
         return str.replace(new RegExp(find, 'g'), replace);
     }
 
-    var origin = pairs[i][0];
-    var destination = pairs[i][1];
-    var outDate = pairs[i][2];
-    var inDate = pairs[i][3];
+    if (it >= pairs.length) {
+        return;
+    }
+
+    var origin = pairs[it][0];
+    var destination = pairs[it][1];
+    var outDate = pairs[it][2];
+    var inDate = pairs[it][3];
     var printOutDate = replaceAll('/', '-', outDate);
     var printInDate = replaceAll('/', '-', inDate);
 
@@ -115,42 +119,38 @@ function launchPhantom(i) {
         }
     }
 
-    if (i >= pairs.length) {
+    var args = pairs[it].join(' ');
+    console.log(args);
+
+    var options = {
+        "timeout": 100000
     }
-    else {
-        var args = pairs[i].join(' ');
-        console.log(args);
 
-        var options = {
-            "timeout": 100000
-        }
+    var child = exec('phantomjs ita.js ' + args, options,
+            function(error, stdout, stderr) {
+                var str = stdout.toString('utf8');
+                if (str) {
+                    var elems = str.split('\n');
+                    var price = elems[0].slice(1);
+                    var out_stops = elems[1].split(',')
+                    var ret_stops = elems[2].split(',')
 
-        var child = exec('phantomjs ita.js ' + args, options,
-                function(error, stdout, stderr) {
-                    var str = stdout.toString('utf8');
-                    if (str) {
-                        var elems = str.split('\n');
-                        var price = elems[0].slice(1);
-                        var out_stops = elems[1].split(',')
-                        var ret_stops = elems[2].split(',')
-
-                        // Remove commas
-                        price = price.replace(/,/g,"");
-                        price = parseInt(price);
-                        calculateMiles(out_stops, ret_stops, function(mqm) {
-                            writeOut(mqm, price, price/mqm, out_stops, ret_stops);
-                            setTimeout(function() {
-                                launchPhantom(i + 1);
-                            }, 60000);
-                        });
-                    }
-                    else {
+                    // Remove commas
+                    price = price.replace(/,/g,"");
+                    price = parseInt(price);
+                    calculateMiles(out_stops, ret_stops, function(mqm) {
+                        writeOut(mqm, price, price/mqm, out_stops, ret_stops);
                         setTimeout(function() {
-                            launchPhantom(i + 1);
+                            launchPhantom(it + 1);
                         }, 60000);
-                    }
-                });
-    }
+                    });
+                }
+                else {
+                    setTimeout(function() {
+                        launchPhantom(it + 1);
+                    }, 60000);
+                }
+            });
 }
 
 function exploreRoutes(origins, destinations, outDates, inDates, routing) {
