@@ -8,9 +8,10 @@ SFO SJC OAK LAX to JFK LGA MIA PBI FLL ORD
 
 
 Argument 3: Outbound and Inbound Dates
-    These are the dates you would like to leave on, both from your origin city and your destination city. Make sure they do not overlap, as we're not yet smart enough to make sure that the outbound and inbound dates make sense.
+    These are the dates you would like to leave on, both from your origin city and your destination city. Make sure they do not overlap, as we're not yet smart enough to make sure that the outbound and inbound dates make sense. If you're flexible with your dates, you can also search an entire month starting at a certain date. To do this, set your outbound date to the start date, and your outbound date to your stay length (e.g. 3days, 2-3days, 5,7days).
 
 from 03/04/2015 03/05/2015 03/06/2015 until 03/14/2015 03/15/2015 03/16/2015
+from 03/04/2015 until 2-3days
 
 
 Argument 4: Advanced Routing Codes
