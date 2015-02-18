@@ -15,10 +15,10 @@ function launchPhantom(it) {
     function replaceAll(find, replace, str) {
         return str.replace(new RegExp(find, 'g'), replace);
     }
-
-    if (it >= pairs.length) {
-        return;
+    function endsWith(str, suffix) {
+        return str.indexOf();
     }
+
 
     var origin = pairs[it][0];
     var destination = pairs[it][1];
@@ -27,14 +27,20 @@ function launchPhantom(it) {
     var printOutDate = replaceAll('/', '-', outDate);
     var printInDate = replaceAll('/', '-', inDate);
 
+    if (endsWith(inDate, "days")) {
+        var stay = inDate.replace("days", "");
+        pairs[it][3] = "month";
+        pairs[it].push(stay);
+    }
+
     function makePrettyLine(html, price, mqm, out_stops, ret_stops) {
         var cpm = (price/mqm).toFixed(2);
 
         var title = origin + ' ✈ ' + destination;
         var dates = printOutDate + ' -> ' + printInDate;
         var price_and_miles = '$' + price + ', ' + mqm + ' ($' + cpm + '/mi)';
-        var out_stops = ' outbound via ' + out_stops;
-        var ret_stops = ' return via ' + ret_stops;
+        var out_stops_txt = ' outbound via ' + out_stops;
+        var ret_stops_txt = ' return via ' + ret_stops;
 
         var html_open = '<font face="Courier New"><a href=';
         var filename = '"' + origin + ' ' + destination + ' ' + printOutDate + ' ' + printInDate + '.jpg"';
@@ -42,15 +48,15 @@ function launchPhantom(it) {
 
         if (!html) {
             var s = title + ' | ' + dates + ' : ' + price_and_miles +
-                (out_stops.length > 0 ? out_stops : '') +
-                (ret_stops.length > 0 ? ret_stops : '');
+                (out_stops.length > 0 ? out_stops_txt : '') +
+                (ret_stops.length > 0 ? ret_stops_txt : '');
             return s
         }
         else {
             var s = html_open + filename + html_close + 
                 title + '</a> | ' + dates + ' : ' + price_and_miles +
-                (out_stops.length > 0 ? out_stops : '') +
-                (ret_stops.length > 0 ? ret_stops : '') + '<br>';
+                (out_stops.length > 0 ? out_stops_txt : '') +
+                (ret_stops.length > 0 ? ret_stops_txt : '') + '<br>';
             return s
         }
     }
@@ -135,20 +141,31 @@ function launchPhantom(it) {
                 if (str) {
                     var elems = str.split('\n');
                     var price = elems[0].slice(1);
-                    var out_stops = elems[1].split(',')
-                    var ret_stops = elems[2].split(',')
+                    var out_stops = [];
+                    var ret_stops = [];
+
+                    if (elems.length > 2) {
+                        out_stops = elems[1].split(',');
+                        ret_stops = elems[2].split(',');
+                    }
 
                     // Remove commas
                     price = price.replace(/,/g,"");
                     price = parseInt(price);
                     calculateMiles(out_stops, ret_stops, function(mqm) {
                         writeOut(mqm, price, price/mqm, out_stops, ret_stops);
+                        if (it + 1 == pairs.length) {
+                            process.exit(code=0);
+                        }
                         setTimeout(function() {
                             launchPhantom(it + 1);
                         }, 60000);
                     });
                 }
                 else {
+                    if (it + 1 == pairs.length) {
+                        process.exit(code=0);
+                    }
                     setTimeout(function() {
                         launchPhantom(it + 1);
                     }, 60000);
