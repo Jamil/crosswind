@@ -16,9 +16,8 @@ function launchPhantom(it) {
         return str.replace(new RegExp(find, 'g'), replace);
     }
     function endsWith(str, suffix) {
-        return str.indexOf();
+        return str.indexOf(suffix, str.length - suffix.length) !== -1;
     }
-
 
     var origin = pairs[it][0];
     var destination = pairs[it][1];
@@ -43,7 +42,16 @@ function launchPhantom(it) {
         var ret_stops_txt = ' return via ' + ret_stops;
 
         var html_open = '<font face="Courier New"><a href=';
-        var filename = '"' + origin + ' ' + destination + ' ' + printOutDate + ' ' + printInDate + '.jpg"';
+
+        var flexible = endsWith(inDate, "days");
+        var filename;
+
+        if (flexible) {
+            filename = '"' + origin + ' ' + destination + ' ' + printOutDate + ' ' + printInDate + '.jpg"';
+        }
+        else {
+            filename = '"' + origin + ' ' + destination + ' ' + printOutDate + ' ' + "month" + '.jpg"';
+        }
         var html_close = '>';
 
         if (!html) {
