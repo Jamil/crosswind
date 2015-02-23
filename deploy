@@ -1,0 +1,2 @@
+scp -i ~/.ssh/crosswind.pem main.js ec2-user@crosswind.io:~
+scp -i ~/.ssh/crosswind.pem ita.js  ec2-user@crosswind.io:~
