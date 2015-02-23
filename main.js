@@ -44,9 +44,12 @@ function launchPhantom(it) {
         var html_open = '<font face="Courier New"><a href=';
 
         var flexible = endsWith(inDate, "days");
+        console.log(flexible);
+        console.log(inDate);
+
         var filename;
 
-        if (flexible) {
+        if (!flexible) {
             filename = '"' + origin + ' ' + destination + ' ' + printOutDate + ' ' + printInDate + '.jpg"';
         }
         else {
